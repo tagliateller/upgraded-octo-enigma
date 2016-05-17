@@ -2,6 +2,7 @@ package de.robertbloy.core;
 
 import java.net.UnknownHostException;
 import java.util.Date;
+import com.mongodb.DBObject;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -9,12 +10,25 @@ import com.mongodb.DBCursor;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoException;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.File;
+import java.net.URL;
+
 /**
  * Java + MongoDB Hello world Example
  * 
  */
 public class App {
+
   public static void main(String[] args) {
+      
+      new App().execute();
+  }
+
+    private void execute () {
 
     try {
 
@@ -24,51 +38,36 @@ public class App {
 
 	/**** Get database ****/
 	// if database doesn't exists, MongoDB will create it for you
-	DB db = mongo.getDB("testdb");
+	DB db = mongo.getDB("boaportal");
 
-	/**** Get collection / table from 'testdb' ****/
-	// if collection doesn't exists, MongoDB will create it for you
-	DBCollection table = db.getCollection("user");
-
-	/**** Insert ****/
-	// create a document to store key and value
-	BasicDBObject document = new BasicDBObject();
-	document.put("name", "mkyong");
-	document.put("age", 30);
-	document.put("createdDate", new Date());
-	table.insert(document);
-
-	/**** Find and display ****/
-	BasicDBObject searchQuery = new BasicDBObject();
-	searchQuery.put("name", "mkyong");
-
-	DBCursor cursor = table.find(searchQuery);
-
-	while (cursor.hasNext()) {
-		System.out.println(cursor.next());
-	}
-
-	/**** Update ****/
-	// search document where name="mkyong" and update it with new values
-	BasicDBObject query = new BasicDBObject();
-	query.put("name", "mkyong");
-
-	BasicDBObject newDocument = new BasicDBObject();
-	newDocument.put("name", "mkyong-updated");
-
-	BasicDBObject updateObj = new BasicDBObject();
-	updateObj.put("$set", newDocument);
-
-	table.update(query, updateObj);
-
-	/**** Find and display ****/
-	BasicDBObject searchQuery2 
-	    = new BasicDBObject().append("name", "mkyong-updated");
-
-	DBCursor cursor2 = table.find(searchQuery2);
-
-	while (cursor2.hasNext()) {
-		System.out.println(cursor2.next());
+	DBCollection fotosCollection = db.getCollection("fotos");
+	int fotosImported = 0;
+	if (fotosCollection.count() < 1) {
+	   System.out.println("The database is empty.  We need to populate it");
+	   try {
+	       byte buf[] = new byte[4096];
+	       ByteArrayOutputStream baos = new ByteArrayOutputStream();
+	       InputStream is = this.getClass().getClassLoader().getResourceAsStream ( "fotos/foto1.png" );
+	       while ( is.available() > 0 )
+	       {
+			int len = is.read(buf);
+			baos.write ( buf, 0, len );
+	       }
+	       is.close();
+	       baos.close();
+       	       byte imageBytes[] = baos.toByteArray();
+	       
+	       System.out.println ( "Image foto1 mit " + imageBytes.length + " geladen." );
+	       DBObject doc1 = new BasicDBObject("foto1", 1);
+	       doc1.put("fileName", "foto1");
+	       doc1.put("size", imageBytes.length);
+	       doc1.put("data", imageBytes);
+	       
+	       fotosCollection.insert ( doc1 );
+	       System.out.println("Successfully imported " + fotosImported + " fotos.");
+	   } catch (Exception e) {
+	     e.printStackTrace();
+	   }
 	}
 
 	/**** Done ****/
